@@ -1,0 +1,125 @@
+%% Supplier Portal — System Architecture (5-Layer Stack)
+
+flowchart TB
+    subgraph CLIENTS["PRESENTATION LAYER"]
+        direction LR
+        C1[Supplier Browser<br/>React 18.x + G4 DSL]
+        C2[Supplier Manager Browser<br/>React 18.x + G4 DSL]
+        C3[Admin Browser<br/>React 18.x + G4 DSL]
+    end
+
+    subgraph GATEWAY["API GATEWAY LAYER"]
+        direction LR
+        GW1[API Gateway<br/>JWT Validation]
+        GW2[Rate Limiter<br/>Throttling]
+        GW3[Tenant Context<br/>Injector]
+        GW4[RBAC Middleware<br/>Role Enforcement]
+    end
+
+    subgraph SERVICES["SERVICE LAYER — Spring Boot 3.x Microservices"]
+        direction TB
+
+        subgraph ONBOARDING["Onboarding Domain"]
+            SVC1[Invitation Service<br/>12 APIs]
+            SVC2[Registration Service<br/>Form Config + Draft/Resume]
+            SVC3[Document Service<br/>Upload, Virus Scan, S3]
+        end
+
+        subgraph COMPLIANCE["Compliance Domain"]
+            SVC4[Screening Orchestrator<br/>7 APIs — 1 Orchestration]
+            SVC5[Approval Engine<br/>8 APIs — Multi-Level Workflow]
+        end
+
+        subgraph TRANSACTIONAL["Transactional Domain"]
+            SVC6[PO Service<br/>10 APIs — Import, Ack, Sync]
+            SVC7[Invoice Service<br/>11 APIs — PO-Flip, Manual, Submit]
+            SVC8[Master Data Service<br/>6 APIs — Change Workflows]
+        end
+
+        subgraph CROSSCUTTING["Cross-Cutting Services"]
+            SVC9[Notification Service<br/>Email + WebSocket]
+            SVC10[Audit Service<br/>Immutable Log, 2yr Retention]
+            SVC11[Dashboard Service<br/>KPI Aggregation]
+            SVC12[Admin Config Service<br/>Forms, Workflows, Settings]
+        end
+    end
+
+    subgraph INTEGRATION["INTEGRATION LAYER — Adapter Pattern"]
+        direction LR
+        INT1[Keycloak Adapter<br/>OIDC/SSO, JWT]
+        INT2[Screening Adapter<br/>Address + TIN + Sanctions]
+        INT3[Bank Validation<br/>Adapter]
+        INT4[ERP Adapter<br/>SAP / Oracle / NetSuite]
+        INT5[S3 Storage Adapter<br/>+ Virus Scanning]
+        INT6[HashiCorp Vault<br/>Secrets Adapter]
+    end
+
+    subgraph RESILIENCE["FAULT TOLERANCE"]
+        direction LR
+        FT1[Circuit Breaker<br/>Per Integration]
+        FT2[Retry Queue<br/>Exponential Backoff]
+        FT3[Dead Letter Queue<br/>Failed Messages]
+    end
+
+    subgraph DATA["DATA LAYER — PostgreSQL OLAP"]
+        direction TB
+
+        subgraph TENANTDB["Multi-Tenant Schemas"]
+            DB1[(Tenant A Schema<br/>+ RLS Policies)]
+            DB2[(Tenant B Schema<br/>+ RLS Policies)]
+            DB3[(Tenant N Schema<br/>+ RLS Policies)]
+        end
+
+        DB4[(Common Schema<br/>Form Templates, i18n,<br/>Workflow Definitions)]
+        DB5[(Redis Cache<br/>Sessions, Config,<br/>Form Templates)]
+        DB6[(Redis Job Queue<br/>Async Ops: Bulk Import,<br/>Screening, Notifications)]
+    end
+
+    subgraph EXTERNAL["EXTERNAL SYSTEMS — HighRadius Owned"]
+        direction LR
+        EXT1[Keycloak IAM<br/>Authentication + SSO]
+        EXT2[Screening Services<br/>Address / TIN / Sanctions]
+        EXT3[Bank Validation<br/>Service]
+        EXT4[ERP Systems<br/>SAP / Oracle / NetSuite]
+        EXT5[G4 Platform<br/>Deployment Runtime]
+    end
+
+    C1 & C2 & C3 -->|HTTPS/TLS 1.3| GW1
+    GW1 --> GW2 --> GW3 --> GW4
+
+    GW4 --> SVC1 & SVC2 & SVC3
+    GW4 --> SVC4 & SVC5
+    GW4 --> SVC6 & SVC7 & SVC8
+    GW4 --> SVC9 & SVC10 & SVC11 & SVC12
+
+    SVC1 --> SVC9
+    SVC2 --> SVC3
+    SVC4 --> INT2 & INT3
+    SVC5 --> SVC9
+    SVC6 --> INT4
+    SVC7 --> INT4
+    SVC8 --> SVC5
+
+    INT1 --> EXT1
+    INT2 --> EXT2
+    INT3 --> EXT3
+    INT4 --> EXT4
+    INT5 --> EXT5
+
+    INT1 & INT2 & INT3 & INT4 --> FT1
+    FT1 --> FT2 --> FT3
+
+    SVC1 & SVC2 & SVC4 & SVC5 & SVC6 & SVC7 & SVC8 --> DB1 & DB2 & DB3
+    SVC12 --> DB4
+    SVC11 --> DB5
+    SVC4 & SVC9 --> DB6
+
+    SVC10 -.->|Every Action Logged| DB1 & DB2 & DB3
+
+    style CLIENTS fill:#e3f2fd,stroke:#1565C0
+    style GATEWAY fill:#fce4ec,stroke:#c62828
+    style SERVICES fill:#e8f5e9,stroke:#2E7D32
+    style INTEGRATION fill:#fff8e1,stroke:#F9A825
+    style DATA fill:#f3e5f5,stroke:#7B1FA2
+    style EXTERNAL fill:#efebe9,stroke:#4E342E
+    style RESILIENCE fill:#ffebee,stroke:#d32f2f

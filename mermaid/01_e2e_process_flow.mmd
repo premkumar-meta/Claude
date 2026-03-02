@@ -1,0 +1,124 @@
+%% Supplier Portal — End-to-End Process Flow
+%% Exported to image by user. This is the master E2E lifecycle.
+
+flowchart TB
+    subgraph PHASE1["PHASE 1 — MVP: CORE ONBOARDING & COMPLIANCE"]
+        direction TB
+
+        A([Supplier Manager<br/>logs into Apollo Platform]) --> B[Navigate to<br/>Supplier Portal Module]
+        B --> C{Invitation<br/>Method?}
+
+        C -->|Individual| D[Open Supplier Onboarding<br/>Invitation E-Form Modal]
+        C -->|Bulk CSV| E[Upload CSV File<br/>with Supplier List]
+
+        D --> F[Fill: Name, Email,<br/>ERP/Company, Category]
+        E --> G[Validate CSV:<br/>Duplicates, Format, Email]
+
+        F --> H[Send Invitation Email<br/>with Secure Time-Limited Link]
+        G --> H
+
+        H --> I([Supplier Receives Email<br/>from noreply@qas.com])
+        I --> J[Click: Proceed To Complete<br/>Vendor Registration]
+
+        J --> K[Step 1: General Supplier Info<br/>Name, Email, TIN, Tax Classification]
+        K --> L[Step 2: Purchase Info<br/>Sales Rep, Billing & Shipping Address]
+        L --> M[Step 3: Remittance Info<br/>Multiple Addresses via Grid CRUD]
+        M --> N[Step 4: Payment Info<br/>Wire/ACH, Bank Name, Account, ABA]
+        N --> O[Step 5: Upload Documents<br/>Multi-file, Drag-Drop, Type Selection]
+
+        O --> P[Certify & Submit Registration]
+        P --> Q{Auto-Save<br/>Draft?}
+        Q -->|Yes — Resume Later| K
+        Q -->|Submit| R
+
+        R[AGENT: Supplier Screening<br/>Automated — Parallel Checks] --> S1[Address Verification]
+        R --> S2[TIN Validation]
+        R --> S3[Sanctions Screening<br/>OFAC/EU/UN]
+        R --> S4[AGENT: Bank Account<br/>Validation — Automated]
+
+        S1 --> T{All Checks<br/>Passed?}
+        S2 --> T
+        S3 --> T
+        S4 --> T
+
+        T -->|Any Failed| U[Block with Actionable<br/>Error + Retry Option]
+        U --> R
+
+        T -->|All Passed| V[AGENT: Supplier Approval<br/>Assisted — Multi-Level Workflow]
+
+        V --> W{Approval<br/>Decision?}
+        W -->|Approved| X[Activate Supplier<br/>+ Grant Portal Access via Keycloak]
+        W -->|Rejected| Y[Notify Supplier<br/>of Rejection with Reason]
+        W -->|Reassigned| V
+        W -->|SLA Breach| Z[Auto-Escalate to<br/>Next Approval Level]
+        Z --> V
+
+        X --> AA([Supplier Dashboard<br/>Financial Summary + Tasks + Alerts])
+    end
+
+    subgraph PHASE2["PHASE 2 — TRANSACTIONAL ENABLEMENT"]
+        direction TB
+
+        AA --> BB{Supplier<br/>Action?}
+
+        BB -->|View POs| CC[Purchase Order List<br/>8 POs, Multi-Buyer]
+        BB -->|Create Invoice| DD[Invoice List<br/>16 Invoices, Lifecycle Nav]
+        BB -->|Update Profile| EE[Supplier Profile<br/>5-Tab Read/Edit View]
+
+        CC --> FF[PO Detail View<br/>Billing, Summary, Line Items]
+        FF --> GG{PO Status?}
+
+        GG -->|Ack Pending| HH[Click Acknowledge<br/>or Bulk Acknowledge via Actions]
+        GG -->|Acknowledged| II[Click Create Invoice<br/>— PO Flip Entry Point]
+        GG -->|Rejected| JJ[Read-Only —<br/>No Actions Available]
+        GG -->|Closed| JJ
+
+        HH --> KK[AGENT: Purchase Order<br/>Automated — Sync Ack to ERP]
+        KK --> II
+
+        II --> LL[Select Lines to<br/>Create Invoice Modal]
+        LL --> MM[Partial Line Selection<br/>1 of N Lines]
+        MM --> NN[Invoice Draft Created<br/>Auto-Populated from PO Data]
+
+        NN --> OO{Add More<br/>PO Lines?}
+        OO -->|Yes| PP[Select PO Lines to<br/>Add to Invoice Modal]
+        PP --> NN
+        OO -->|No| QQ[Edit Mode: Fill Invoice No,<br/>Adjust Dates, Payment Terms]
+
+        DD --> RR{Creation<br/>Method?}
+        RR -->|PO Flip| II
+        RR -->|Manual| SS[Click + Add Invoice<br/>Blank Draft Created]
+
+        SS --> TT[Edit Mode: Fill ALL Fields<br/>Bill-to, Ship-to, Type, PO No.]
+
+        QQ --> UU[Save Draft]
+        TT --> UU
+
+        UU --> VV[Attach Files via Files Tab<br/>Upload, Auto-Classify, Preview]
+        VV --> WW[Submit Invoice]
+        WW --> XX[AGENT: Portal Invoice Creation<br/>Assisted — Validate & Sync to AP]
+
+        XX --> YY{Invoice<br/>Lifecycle}
+        YY -->|Draft| WW
+        YY -->|Submitted| ZZ[AP Team Processes<br/>— Read-Only for Supplier]
+        YY -->|In Progress| ZZ
+        YY -->|Rejected| AAA[Supplier Creates<br/>New Corrected Invoice]
+        YY -->|Paid| BBB([Terminal: Payment<br/>Complete])
+        YY -->|Void| CCC([Terminal: Invoice<br/>Voided])
+
+        EE --> DDD{Profile<br/>Change?}
+        DDD -->|Edit Data| EEE[AGENT: Master Data Change<br/>Approval — Assisted Workflow]
+        EEE --> FFF{Change<br/>Approved?}
+        FFF -->|Yes| GGG[Update Supplier<br/>Master Record]
+        FFF -->|No| HHH[Reject Change —<br/>Notify Supplier]
+        DDD -->|View Only| AA
+    end
+
+    style PHASE1 fill:#e8f4f8,stroke:#2196F3,stroke-width:3px
+    style PHASE2 fill:#fff3e0,stroke:#FF9800,stroke-width:3px
+    style R fill:#ff6b6b,color:#fff
+    style S4 fill:#ff6b6b,color:#fff
+    style V fill:#ffa726,color:#fff
+    style KK fill:#ff6b6b,color:#fff
+    style XX fill:#ffa726,color:#fff
+    style EEE fill:#ffa726,color:#fff

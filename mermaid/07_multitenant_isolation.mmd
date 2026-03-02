@@ -1,0 +1,81 @@
+%% Supplier Portal — Multi-Tenant Data Isolation Architecture
+
+flowchart TB
+    subgraph REQUEST["INCOMING REQUEST"]
+        REQ["HTTPS Request<br/>Authorization: Bearer eyJhbG..."]
+    end
+
+    subgraph RESOLUTION["TENANT RESOLUTION (API Gateway)"]
+        direction TB
+        DECODE["Decode JWT Payload:<br/>━━━━━━━━━━━━━━━━━━<br/>{<br/>  sub: 'user-uuid-123',<br/>  tenant_id: 'TENANT-A',<br/>  roles: ['SUPPLIER'],<br/>  org: 'AOPS001',<br/>  exp: 1740000000<br/>}"]
+
+        VALIDATE["Validate:<br/>• Signature (RS256 from Keycloak)<br/>• Not expired<br/>• tenant_id present<br/>• roles[] non-empty"]
+
+        INJECT["Inject into RequestContext:<br/>ctx.tenantId = 'TENANT-A'<br/>ctx.userId = 'user-uuid-123'<br/>ctx.roles = ['SUPPLIER']"]
+    end
+
+    subgraph MIDDLEWARE["SERVICE MIDDLEWARE (Every Microservice)"]
+        direction TB
+        MWARE["TenantContextFilter:<br/>━━━━━━━━━━━━━━━━━━<br/>1. Read ctx.tenantId<br/>2. SET LOCAL app.tenant_id = 'TENANT-A'<br/>3. Select schema: tenant_a_schema<br/>4. Append tenant_id to all queries"]
+    end
+
+    subgraph DATABASE["POSTGRESQL — SCHEMA-PER-TENANT"]
+        direction TB
+
+        subgraph SCHEMA_A["Schema: tenant_a_schema"]
+            TA_SUP[(suppliers<br/>tenant_id = TENANT-A)]
+            TA_PO[(purchase_orders<br/>tenant_id = TENANT-A)]
+            TA_INV[(invoices<br/>tenant_id = TENANT-A)]
+            TA_DOC[(documents<br/>tenant_id = TENANT-A)]
+            TA_AUD[(audit_logs<br/>tenant_id = TENANT-A)]
+        end
+
+        subgraph SCHEMA_B["Schema: tenant_b_schema"]
+            TB_SUP[(suppliers<br/>tenant_id = TENANT-B)]
+            TB_PO[(purchase_orders<br/>tenant_id = TENANT-B)]
+            TB_INV[(invoices<br/>tenant_id = TENANT-B)]
+            TB_DOC[(documents<br/>tenant_id = TENANT-B)]
+            TB_AUD[(audit_logs<br/>tenant_id = TENANT-B)]
+        end
+
+        subgraph COMMON["Schema: common_schema (Shared Config)"]
+            CM_FORM[(form_templates)]
+            CM_WF[(workflow_definitions)]
+            CM_I18N[(i18n_labels)]
+            CM_TENANT[(tenant_config)]
+        end
+
+        RLS_BOX["RLS Policy (Safety Net):<br/>━━━━━━━━━━━━━━━━━━<br/>CREATE POLICY tenant_isolation ON ALL TABLES<br/>USING (tenant_id = current_setting('app.tenant_id')::uuid)<br/>WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid)<br/>━━━━━━━━━━━━━━━━━━<br/>Applied to ALL tenant-specific tables<br/>Prevents cross-tenant reads AND writes"]
+    end
+
+    subgraph CACHE["REDIS — TENANT-SCOPED CACHING"]
+        direction LR
+        R_SESS["Sessions:<br/>session:{tenant}:{user}"]
+        R_CFG["Config Cache:<br/>config:{tenant}:forms"]
+        R_QUEUE["Job Queue:<br/>queue:{tenant}:screening"]
+    end
+
+    subgraph STORAGE["S3 — TENANT-SCOPED PATHS"]
+        direction LR
+        S3_A["Bucket: portal-docs<br/>Path: /TENANT-A/suppliers/{id}/..."]
+        S3_B["Bucket: portal-docs<br/>Path: /TENANT-B/suppliers/{id}/..."]
+    end
+
+    REQ --> DECODE --> VALIDATE --> INJECT
+    INJECT --> MWARE
+    MWARE -->|"tenant_id = TENANT-A"| SCHEMA_A
+    MWARE -.->|"BLOCKED: Cannot access"| SCHEMA_B
+    MWARE --> COMMON
+
+    MWARE --> R_SESS & R_CFG & R_QUEUE
+    MWARE --> S3_A
+    MWARE -.->|"BLOCKED"| S3_B
+
+    RLS_BOX -.->|"Enforced on"| SCHEMA_A & SCHEMA_B
+
+    style RESOLUTION fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style MIDDLEWARE fill:#fff3e0,stroke:#EF6C00,stroke-width:2px
+    style DATABASE fill:#f3e5f5,stroke:#7B1FA2,stroke-width:2px
+    style SCHEMA_A fill:#e8f5e9,stroke:#2E7D32
+    style SCHEMA_B fill:#e3f2fd,stroke:#1565C0
+    style COMMON fill:#fff8e1,stroke:#F9A825

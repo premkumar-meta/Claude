@@ -1,0 +1,73 @@
+%% Supplier Portal — Agent Automation Trigger Map (7 Agents)
+
+flowchart LR
+    subgraph TRIGGERS["TRIGGER EVENTS"]
+        T1[Manager clicks<br/>Send Invitation]
+        T2[Manager uploads<br/>Bulk CSV]
+        T3[Supplier clicks<br/>Submit Registration]
+        T4[Screening<br/>All Checks Pass]
+        T5[Supplier edits<br/>Profile Data]
+        T6[ERP pushes<br/>New PO Data]
+        T7[Supplier clicks<br/>Acknowledge PO]
+        T8A[Supplier clicks<br/>Create Invoice from PO]
+        T8B[Supplier clicks<br/>+ Add Invoice]
+        T9[Supplier clicks<br/>Submit Invoice]
+    end
+
+    subgraph AGENTS["7 INTELLIGENT AGENTS"]
+        direction TB
+
+        subgraph AUTO["AUTOMATED AGENTS (4)"]
+            A1["AGENT 1: Supplier Onboarding<br/>━━━━━━━━━━━━━━━━━━<br/>• Generate secure invitation link<br/>• Load tenant form config<br/>• Auto-save drafts (per step)<br/>• Validate 5-step wizard<br/>• Send confirmation email<br/>━━━━━━━━━━━━━━━━━━<br/>12 APIs | Phase 1"]
+
+            A2["AGENT 2: Supplier Screening<br/>━━━━━━━━━━━━━━━━━━<br/>• Orchestrate 4 parallel checks<br/>• Address verification (HR API)<br/>• TIN validation (HR API)<br/>• Sanctions screening (HR API)<br/>• Aggregate pass/fail results<br/>• Retry on timeout<br/>━━━━━━━━━━━━━━━━━━<br/>7 APIs (3 HR + 1 orch) | Phase 1"]
+
+            A3["AGENT 3: Bank Account Validation<br/>━━━━━━━━━━━━━━━━━━<br/>• Validate bank ownership (HR API)<br/>• Verify account number format<br/>• Check ABA/routing number<br/>• Fraud prevention scoring<br/>━━━━━━━━━━━━━━━━━━<br/>3 APIs (1 HR) | Phase 1"]
+
+            A6["AGENT 6: Purchase Order<br/>━━━━━━━━━━━━━━━━━━<br/>• Ingest POs from multi-ERPs<br/>• Parse line items + metadata<br/>• Process ack/reject from supplier<br/>• Sync status back to ERP<br/>• Bulk acknowledgment support<br/>━━━━━━━━━━━━━━━━━━<br/>10 APIs (1 HR) | Phase 2"]
+        end
+
+        subgraph ASSIST["ASSISTED AGENTS (3)"]
+            A4["AGENT 4: Supplier Approval<br/>━━━━━━━━━━━━━━━━━━<br/>• Load workflow config per tenant<br/>• Route to correct approver level<br/>• Conditional routing (spend, region)<br/>• SLA tracking + auto-escalation<br/>• Approve / Reject / Reassign<br/>• Create Keycloak user on final approval<br/>━━━━━━━━━━━━━━━━━━<br/>8 APIs | Phase 1"]
+
+            A5["AGENT 5: Master Data Change<br/>━━━━━━━━━━━━━━━━━━<br/>• Detect changed fields<br/>• Determine if approval required<br/>• Route to approval workflow<br/>• Apply changes on approval<br/>• Trigger re-screening if needed<br/>━━━━━━━━━━━━━━━━━━<br/>6 APIs | Phase 2"]
+
+            A7["AGENT 7: Portal Invoice Creation<br/>━━━━━━━━━━━━━━━━━━<br/>• PO-Flip: auto-populate from PO<br/>• Manual: blank draft creation<br/>• Partial invoicing (line selection)<br/>• Field validation on submit<br/>• File attachment + auto-classify<br/>• Generate invoice PDF<br/>• Sync to AP/ERP system<br/>━━━━━━━━━━━━━━━━━━<br/>11 APIs (1 HR) | Phase 2"]
+        end
+    end
+
+    subgraph OUTPUTS["OUTPUTS / STATE CHANGES"]
+        O1[Invitation Sent<br/>Email Dispatched]
+        O2[Supplier Record<br/>Created — SUBMITTED]
+        O3[Screening Result<br/>PASSED / FAILED]
+        O4[Supplier Status<br/>ACTIVE / REJECTED]
+        O5[Master Record<br/>Updated / Unchanged]
+        O6[PO Status<br/>ACKNOWLEDGED / REJECTED]
+        O7[Invoice Status<br/>DRAFT Created]
+        O8[Invoice Status<br/>SUBMITTED → AP Sync]
+    end
+
+    T1 & T2 --> A1
+    T3 --> A2
+    T3 --> A3
+    T4 --> A4
+    T5 --> A5
+    T6 --> A6
+    T7 --> A6
+    T8A & T8B --> A7
+    T9 --> A7
+
+    A1 --> O1 --> O2
+    A2 --> O3
+    A3 --> O3
+    O3 -->|All Pass| A4
+    A4 --> O4
+    A5 --> O5
+    A6 --> O6
+    A7 --> O7
+    O7 -->|Submit| O8
+
+    style AUTO fill:#e8f5e9,stroke:#2E7D32,stroke-width:2px
+    style ASSIST fill:#fff3e0,stroke:#EF6C00,stroke-width:2px
+    style TRIGGERS fill:#e3f2fd,stroke:#1565C0
+    style OUTPUTS fill:#f3e5f5,stroke:#7B1FA2

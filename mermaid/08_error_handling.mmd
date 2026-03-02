@@ -1,0 +1,89 @@
+%% Supplier Portal — Error Handling & Rejection Loops
+
+flowchart TB
+    subgraph SCREENING_ERRORS["SCREENING FAILURES"]
+        SE1[Registration Submitted] --> SE2{Screening<br/>Orchestrator}
+
+        SE2 --> SE3{Address<br/>Check}
+        SE2 --> SE4{TIN<br/>Check}
+        SE2 --> SE5{Sanctions<br/>Check}
+        SE2 --> SE6{Bank<br/>Check}
+
+        SE3 -->|Fail| SE7[Address Invalid:<br/>Actionable error message<br/>+ correction fields highlighted]
+        SE4 -->|Fail| SE8[TIN Invalid:<br/>Format/checksum error<br/>+ correct format shown]
+        SE5 -->|Fail| SE9[Sanctions Match:<br/>BLOCKED — Manual review<br/>required by Manager]
+        SE6 -->|Fail| SE10[Bank Invalid:<br/>Ownership/format error<br/>+ retry with corrected data]
+
+        SE3 -->|Timeout| SE11[Circuit Breaker Opens:<br/>Retry queued with<br/>exponential backoff]
+        SE4 -->|Timeout| SE11
+        SE5 -->|Timeout| SE11
+        SE6 -->|Timeout| SE11
+
+        SE11 --> SE12{Retry<br/>Succeeds?}
+        SE12 -->|Yes| SE13[Continue screening flow]
+        SE12 -->|3 Failures| SE14[Dead Letter Queue:<br/>Alert ops team +<br/>supplier notification]
+
+        SE7 & SE8 & SE10 --> SE15[Supplier corrects data<br/>and resubmits]
+        SE15 --> SE2
+        SE9 --> SE16[Manager reviews<br/>sanctions match manually]
+    end
+
+    subgraph APPROVAL_ERRORS["APPROVAL REJECTION LOOPS"]
+        AE1[Screening Passed] --> AE2[Enter Approval<br/>Workflow]
+        AE2 --> AE3{Level 1<br/>Approver}
+        AE3 -->|Approve| AE4{More<br/>Levels?}
+        AE3 -->|Reject| AE5[Rejection Reason<br/>Captured in Modal]
+        AE3 -->|Reassign| AE6[Route to<br/>Different Approver]
+        AE3 -->|No Action| AE7{SLA<br/>Breach?}
+
+        AE4 -->|Yes| AE8[Route to Level 2<br/>Approver]
+        AE4 -->|No — Final| AE9[Supplier ACTIVATED<br/>via Keycloak]
+
+        AE5 --> AE10[Notify Supplier:<br/>Rejection reason +<br/>required corrections]
+        AE10 --> AE11[Supplier corrects<br/>and resubmits registration]
+        AE11 --> SE2
+
+        AE6 --> AE3
+
+        AE7 -->|Yes| AE12[Auto-Escalate to<br/>Next Level Manager]
+        AE7 -->|No| AE3
+        AE12 --> AE3
+
+        AE8 --> AE3
+    end
+
+    subgraph PO_ERRORS["PO REJECTION FLOW"]
+        PE1[PO Received<br/>from ERP] --> PE2{Supplier<br/>Decision}
+        PE2 -->|Acknowledge| PE3[PO Status → ACKNOWLEDGED<br/>Sync to ERP<br/>Create Invoice enabled]
+        PE2 -->|Reject| PE4[PO Status → REJECTED<br/>Read-only terminal state<br/>Sync rejection to ERP]
+        PE4 --> PE5[Buyer/AP notified<br/>of PO rejection]
+    end
+
+    subgraph INVOICE_ERRORS["INVOICE REJECTION & RECOVERY"]
+        IE1[Invoice Submitted] --> IE2[AP System<br/>Processes Invoice]
+        IE2 --> IE3{AP<br/>Decision}
+        IE3 -->|In Progress| IE4[Processing —<br/>Read-only for Supplier]
+        IE3 -->|Rejected| IE5[Invoice Status → REJECTED<br/>Read-only — no resubmit button<br/>━━━━━━━━━━━━━━━━━━<br/>IDENTIFIED WORKFLOW GAP:<br/>No edit/resubmit on rejected invoices]
+        IE3 -->|Paid| IE6[Terminal: PAID<br/>Payment complete]
+        IE3 -->|Void| IE7[Terminal: VOID<br/>Invoice cancelled]
+
+        IE5 --> IE8["Recovery Path:<br/>Supplier creates NEW invoice<br/>(PO-flip or manual)<br/>referencing same PO"]
+
+        IE4 --> IE3
+    end
+
+    subgraph VALIDATION_ERRORS["FIELD-LEVEL VALIDATION"]
+        VE1[Submit Action] --> VE2{Client-Side<br/>Validation}
+        VE2 -->|Missing required fields| VE3[Inline error indicators<br/>+ submit blocked]
+        VE2 -->|Format errors| VE4[TIN format mask violation<br/>Email format invalid<br/>Date range invalid]
+        VE2 -->|Pass| VE5{Server-Side<br/>Validation}
+        VE5 -->|422 Unprocessable| VE6[Field-level error response<br/>+ toast notification]
+        VE5 -->|Duplicate detected| VE7[Duplicate Supplier Warning<br/>Modal — override or cancel]
+        VE5 -->|Pass| VE8[Action proceeds]
+    end
+
+    style SCREENING_ERRORS fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style APPROVAL_ERRORS fill:#fff3e0,stroke:#EF6C00,stroke-width:2px
+    style PO_ERRORS fill:#e3f2fd,stroke:#1565C0,stroke-width:2px
+    style INVOICE_ERRORS fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style VALIDATION_ERRORS fill:#f3e5f5,stroke:#7B1FA2,stroke-width:2px

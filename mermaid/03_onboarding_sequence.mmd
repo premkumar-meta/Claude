@@ -1,0 +1,145 @@
+%% Supplier Portal — Onboarding Microservice Interaction Sequence
+
+sequenceDiagram
+    autonumber
+    participant SM as Supplier Manager
+    participant UI as React SPA
+    participant GW as API Gateway
+    participant INV as Invitation Service
+    participant NOT as Notification Service
+    participant SUP as Supplier (Browser)
+    participant REG as Registration Service
+    participant DOC as Document Service
+    participant SCR as Screening Orchestrator
+    participant ADDR as Address API (HR)
+    participant TIN as TIN API (HR)
+    participant SANC as Sanctions API (HR)
+    participant BANK as Bank Validation API (HR)
+    participant APR as Approval Engine
+    participant KC as Keycloak IAM
+    participant DB as PostgreSQL
+    participant S3 as S3 Storage
+    participant REDIS as Redis Queue
+
+    rect rgb(232, 244, 248)
+        Note over SM,DB: PHASE 1: INVITATION (Supplier Manager)
+        SM->>UI: Click "+ Add Supplier"
+        UI->>UI: Render Invitation E-Form Modal
+        SM->>UI: Fill: Name, Email, ERP/Company, Category
+        UI->>GW: POST /api/v1/invitations
+        GW->>GW: Validate JWT + RBAC (SupplierManager role)
+        GW->>GW: Inject tenant_id from JWT
+        GW->>INV: Forward with tenant context
+        INV->>DB: Check duplicate (email + tenant)
+        alt Duplicate Found
+            INV-->>UI: 409 Conflict — Duplicate Supplier Warning Modal
+        else No Duplicate
+            INV->>DB: INSERT invitation record (status: PENDING)
+            INV->>NOT: Emit INVITATION_CREATED event
+            NOT->>REDIS: Queue email job
+            REDIS->>NOT: Process email job
+            NOT-->>SUP: Send invitation email with secure time-limited link
+            INV-->>UI: 201 Created — Invitation Sent
+        end
+    end
+
+    rect rgb(255, 243, 224)
+        Note over SUP,S3: PHASE 2: REGISTRATION (Supplier)
+        SUP->>UI: Click email link → Load Registration Form
+        UI->>GW: GET /api/v1/registration/{token}
+        GW->>REG: Validate token (not expired, not used)
+        REG->>DB: Load invitation data + tenant form config
+        REG-->>UI: Pre-filled form (Name, Email, Operating Unit) + dynamic field config
+
+        loop 5-Step Registration Wizard
+            SUP->>UI: Fill step data (General → Purchase → Remittance → Payment → Upload)
+            UI->>GW: PUT /api/v1/registration/{id}/step/{n}
+            GW->>REG: Save step data
+            REG->>DB: UPSERT registration draft (auto-save)
+            REG-->>UI: Step saved — "Last auto-saved at {time}"
+        end
+
+        SUP->>UI: Step 5: Upload documents (drag-drop/browse)
+        UI->>GW: POST /api/v1/documents/upload (multipart)
+        GW->>DOC: Forward files
+        DOC->>S3: Store file + trigger virus scan
+        S3-->>DOC: Scan result (clean/infected)
+        DOC->>DB: INSERT document metadata
+        DOC-->>UI: Upload success — render in document grid
+
+        SUP->>UI: Check certification checkbox + Click Submit
+        UI->>GW: POST /api/v1/registration/{id}/submit
+        GW->>REG: Validate all required fields across 5 steps
+        REG->>DB: UPDATE status → SUBMITTED
+        REG-->>UI: "Application Submitted Successfully" toast
+        REG->>NOT: Send confirmation email
+    end
+
+    rect rgb(255, 235, 238)
+        Note over REG,BANK: PHASE 3: AUTOMATED SCREENING (System)
+        REG->>SCR: Emit REGISTRATION_SUBMITTED event
+        SCR->>DB: CREATE screening record (status: IN_PROGRESS)
+
+        par Parallel Screening Checks
+            SCR->>ADDR: POST /screen/address (billing + remittance addresses)
+            ADDR-->>SCR: Address verification result
+        and
+            SCR->>TIN: POST /screen/tin (TIN: 21-GHTDRT, type: Corporation)
+            TIN-->>SCR: TIN validation result
+        and
+            SCR->>SANC: POST /screen/sanctions (name + aliases)
+            SANC-->>SCR: Sanctions screening result (OFAC/EU/UN)
+        and
+            SCR->>BANK: POST /validate/bank (account: HP-347598, bank: HSBC)
+            BANK-->>SCR: Bank ownership validation result
+        end
+
+        SCR->>DB: UPDATE screening results per check
+        SCR->>SCR: Evaluate: ALL 4 checks passed?
+
+        alt Any Check Failed
+            SCR->>DB: UPDATE screening status → FAILED
+            SCR->>NOT: Notify supplier — actionable error details
+            Note over SCR: Supplier can retry after correcting data
+        else All Checks Passed
+            SCR->>DB: UPDATE screening status → PASSED
+            SCR->>APR: Emit SCREENING_PASSED → trigger approval workflow
+        end
+    end
+
+    rect rgb(232, 245, 233)
+        Note over APR,KC: PHASE 4: APPROVAL & ACTIVATION (System + Manager)
+        APR->>DB: Load workflow config (levels, routing rules, SLA)
+        APR->>DB: CREATE approval request (level 1)
+        APR->>NOT: Notify Level 1 Approver
+
+        loop Multi-Level Approval
+            SM->>UI: Open Approval Worklist
+            UI->>GW: GET /api/v1/approvals/pending
+            GW->>APR: Load pending approvals for user
+            APR-->>UI: Approval task with supplier details
+
+            alt Approved
+                SM->>UI: Click Approve + Add Comment
+                UI->>GW: POST /api/v1/approvals/{id}/approve
+                GW->>APR: Process approval
+                APR->>DB: UPDATE approval → APPROVED
+                APR->>APR: Check if final level
+                alt More Levels
+                    APR->>DB: CREATE next-level approval
+                    APR->>NOT: Notify next approver
+                else Final Level
+                    APR->>DB: UPDATE supplier status → ACTIVE
+                    APR->>KC: Create Keycloak user with Supplier role + tenant scope
+                    KC-->>APR: User credentials / SSO link
+                    APR->>NOT: Send activation email with portal access link
+                end
+            else Rejected
+                APR->>DB: UPDATE supplier status → REJECTED
+                APR->>NOT: Notify supplier with rejection reason
+            else SLA Breach
+                APR->>APR: Auto-escalate to next level
+                APR->>NOT: Notify escalation target
+            end
+        end
+    end

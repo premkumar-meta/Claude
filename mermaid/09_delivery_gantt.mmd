@@ -1,0 +1,25 @@
+%% Supplier Portal — Delivery Roadmap Gantt Chart
+
+gantt
+    title Supplier Portal — Delivery Roadmap (20 Calendar Weeks + 6mo Hypercare)
+    dateFormat YYYY-MM-DD
+    axisFormat %b %d
+
+    section Foundation
+    Sprint 0: Architecture, CI/CD, G4 Eval, Design Sprint    :s0, 2026-03-02, 14d
+
+    section Phase 1 — MVP (4 Agents)
+    Sprint 1-2: Onboarding Agent + Screening Agent            :s12, after s0, 28d
+    Sprint 3-4: Bank Validation Agent + Approval Agent + Dashboards :s34, after s12, 28d
+    Sprint 5: Integration Testing + UAT Prep                   :s5, after s34, 14d
+    Phase 1 QA + UAT                                           :crit, uat1, after s5, 14d
+    MVP Go-Live — 1 Live Customer                              :milestone, m1, after uat1, 0d
+
+    section Phase 2 — Transactional (3 Agents)
+    Sprint 6-7: PO Agent + Invoice Agent                       :s67, after uat1, 28d
+    Sprint 8-9: Master Data Agent + Full Integration + Hardening :s89, after s67, 28d
+    Phase 2 QA + Stabilization                                 :crit, uat2, after s89, 14d
+    Full Portal Go-Live + Handover                             :milestone, m2, after uat2, 0d
+
+    section Hypercare
+    Hypercare Support (0.5 FTE, 6 months)                      :active, hyper, after m2, 182d

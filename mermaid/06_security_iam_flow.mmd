@@ -1,0 +1,73 @@
+%% Supplier Portal — Security & IAM Flow (5-Layer Enforcement Chain)
+
+flowchart TB
+    subgraph BROWSER["LAYER 0: CLIENT BROWSER"]
+        USER[User Request<br/>with Keycloak Session Cookie]
+    end
+
+    subgraph LAYER1["LAYER 1: FRONTEND — React Route Guards"]
+        direction TB
+        RG[Route Guard Component]
+        RG --> RG1{Role Check}
+        RG1 -->|Supplier| P1[Show: Dashboard, PO List,<br/>Invoice List, Profile, Notifications]
+        RG1 -->|Supplier Manager| P2[Show: Manager Dashboard,<br/>Supplier List, Worklist,<br/>Approval Queue, Screening]
+        RG1 -->|Admin| P3[Show: Form Builder,<br/>Workflow Config, User Mgmt,<br/>Admin Settings, Audit Trail]
+        RG1 -->|Approver| P4[Show: Approval Worklist,<br/>Manager Dashboard (View)]
+        RG1 -->|No Role| REDIR[Redirect to<br/>Keycloak Login]
+
+        BTN["Button-Level Visibility:<br/>━━━━━━━━━━━━━━━━━━<br/>Supplier: Create Invoice, Ack PO<br/>Manager: Send Invitation, Bulk Upload<br/>Approver: Approve, Reject, Reassign<br/>Admin: Configure Forms, Export Audit"]
+    end
+
+    subgraph LAYER2["LAYER 2: API GATEWAY — JWT + RBAC Middleware"]
+        direction TB
+        JWT[Extract JWT from<br/>Authorization Header]
+        JWT --> JV{JWT Valid?<br/>Signature + Expiry}
+        JV -->|Invalid| R401["401 Unauthorized<br/>→ Redirect to Keycloak"]
+        JV -->|Valid| TE[Extract tenant_id<br/>from JWT claims]
+        TE --> RE[Extract roles[]<br/>from JWT claims]
+        RE --> RBAC{Endpoint requires<br/>role X?}
+        RBAC -->|User lacks role| R403A["403 Forbidden<br/>Insufficient permissions"]
+        RBAC -->|Role matches| CTX[Inject RequestContext:<br/>tenant_id + user_id + roles]
+    end
+
+    subgraph LAYER3["LAYER 3: SERVICE LAYER — ABAC Checks"]
+        direction TB
+        ABAC[Attribute-Based<br/>Access Control Engine]
+        ABAC --> CHK1{Ownership Check:<br/>resource.owner == user_id?}
+        CHK1 -->|Supplier accessing<br/>other's data| R403B["403 Forbidden<br/>Not resource owner"]
+        CHK1 -->|Owner match| CHK2{Status Check:<br/>resource.status allows action?}
+        CHK2 -->|Draft invoice delete<br/>by Supplier = OK| CHK3{Tenant Check:<br/>resource.tenant_id == ctx.tenant_id?}
+        CHK2 -->|Submitted invoice delete<br/>by Supplier = DENIED| R403C["403 Forbidden<br/>Action not allowed in this status"]
+        CHK3 -->|Tenant mismatch| R403D["403 Forbidden<br/>Cross-tenant access blocked"]
+        CHK3 -->|Match| PROCEED[Proceed to<br/>Business Logic]
+    end
+
+    subgraph LAYER4["LAYER 4: DATABASE — RLS + Tenant Scoping"]
+        direction TB
+        MW[Middleware: SET app.tenant_id<br/>= ctx.tenant_id before query]
+        MW --> RLS["PostgreSQL RLS Policy:<br/>━━━━━━━━━━━━━━━━━━<br/>CREATE POLICY tenant_isolation<br/>ON suppliers<br/>USING (tenant_id = current_setting(<br/>'app.tenant_id')::uuid)"]
+        RLS --> QUERY["Every SELECT/INSERT/UPDATE/DELETE<br/>automatically scoped to tenant<br/>━━━━━━━━━━━━━━━━━━<br/>Even if middleware bypassed,<br/>RLS is the safety net"]
+    end
+
+    subgraph LAYER5["LAYER 5: AUDIT — Immutable Logging"]
+        direction TB
+        AUD["Audit Service<br/>━━━━━━━━━━━━━━━━━━<br/>Every allow/deny decision logged<br/>Fields: timestamp, user_id, tenant_id,<br/>action, resource, result, IP, user_agent<br/>━━━━━━━━━━━━━━━━━━<br/>Storage: Immutable append-only table<br/>Retention: 2 years<br/>Export: CSV/PDF for compliance"]
+    end
+
+    USER --> RG
+    RG --> JWT
+    CTX --> ABAC
+    PROCEED --> MW
+    QUERY --> AUD
+
+    R401 -.->|Logged| AUD
+    R403A -.->|Logged| AUD
+    R403B -.->|Logged| AUD
+    R403C -.->|Logged| AUD
+    R403D -.->|Logged| AUD
+
+    style LAYER1 fill:#e3f2fd,stroke:#1565C0,stroke-width:2px
+    style LAYER2 fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style LAYER3 fill:#fff3e0,stroke:#EF6C00,stroke-width:2px
+    style LAYER4 fill:#f3e5f5,stroke:#7B1FA2,stroke-width:2px
+    style LAYER5 fill:#efebe9,stroke:#4E342E,stroke-width:2px

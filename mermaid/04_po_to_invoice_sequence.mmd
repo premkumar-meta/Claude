@@ -1,0 +1,123 @@
+%% Supplier Portal — PO-to-Invoice Microservice Interaction Sequence
+
+sequenceDiagram
+    autonumber
+    participant SUP as Supplier
+    participant UI as React SPA
+    participant GW as API Gateway
+    participant PO as PO Service
+    participant INV as Invoice Service
+    participant DOC as Document Service
+    participant ERP as ERP Adapter
+    participant AP as AP System (ERP)
+    participant NOT as Notification Service
+    participant AUD as Audit Service
+    participant DB as PostgreSQL
+    participant S3 as S3 Storage
+
+    rect rgb(232, 244, 248)
+        Note over SUP,AP: PO IMPORT & ACKNOWLEDGMENT
+        AP->>ERP: Push PO data (scheduled sync)
+        ERP->>PO: POST /api/v1/po/import (batch)
+        PO->>DB: UPSERT POs (status: ACK_PENDING)
+        PO->>NOT: Notify supplier — "3 New POs"
+        NOT-->>SUP: Dashboard alert + email
+
+        SUP->>UI: Navigate to PO List
+        UI->>GW: GET /api/v1/po?status=all
+        GW->>PO: Load POs for tenant + supplier
+        PO->>DB: SELECT with tenant_id + supplier_id filter
+        PO-->>UI: 8 POs (5 Ack Pending, 3 Acknowledged)
+
+        SUP->>UI: Open PO-00181 Detail
+        UI->>GW: GET /api/v1/po/PO-00181
+        PO-->>UI: PO detail with line items (Laptop $1200, Keyboard $150)
+
+        alt Single Acknowledge
+            SUP->>UI: Click "Acknowledge" button
+            UI->>GW: POST /api/v1/po/PO-00181/acknowledge
+        else Bulk Acknowledge
+            SUP->>UI: Select 2 POs → Actions → "Acknowledge Orders"
+            UI->>GW: POST /api/v1/po/bulk-acknowledge
+        end
+
+        GW->>PO: Process acknowledgment
+        PO->>DB: UPDATE PO status → ACKNOWLEDGED
+        PO->>ERP: POST /erp/po/{id}/ack-status
+        ERP->>AP: Sync acknowledgment to ERP
+        PO->>AUD: Log acknowledgment action
+        PO-->>UI: Success toast — "Purchase orders acknowledged"
+    end
+
+    rect rgb(255, 243, 224)
+        Note over SUP,S3: PO-FLIP: CREATE INVOICE FROM PO
+        SUP->>UI: Open Acknowledged PO → Click "Create Invoice"
+        UI->>UI: Render "Select Lines to Create Invoice" Modal
+        UI->>GW: GET /api/v1/po/PO-00170/lines
+        GW->>PO: Load PO line items
+        PO-->>UI: 2 lines (Laptop, Keyboard) with Open Qty
+
+        SUP->>UI: Select Line 1 (Laptop) → Click "Create Invoice"
+        UI->>GW: POST /api/v1/invoices/from-po
+        Note right of GW: Payload: {poId, selectedLines: [L1]}
+        GW->>INV: Create invoice from PO data
+        INV->>PO: GET PO billing, supplier, line data
+        PO-->>INV: Full PO context
+        INV->>DB: INSERT invoice (status: DRAFT, auto-populated)
+        INV->>AUD: Log invoice creation (source: PO-FLIP)
+        INV-->>UI: "Invoice draft created" toast + render detail
+
+        opt Add More PO Lines
+            SUP->>UI: Click "+ Add Line Item" → Modal opens
+            UI->>GW: GET /api/v1/po/PO-00170/lines?exclude=L1
+            PO-->>UI: Remaining lines (Keyboard)
+            SUP->>UI: Select Line 2 → Click "Add"
+            UI->>GW: POST /api/v1/invoices/{id}/add-po-lines
+            INV->>DB: INSERT additional line items
+            INV-->>UI: "Invoice lines added" toast
+        end
+
+        SUP->>UI: Click Edit (pencil icon) → Edit Mode
+        SUP->>UI: Fill Invoice No: INV-2025-003, adjust dates
+        SUP->>UI: Click Save
+        UI->>GW: PUT /api/v1/invoices/{id}
+        INV->>DB: UPDATE invoice draft
+        INV-->>UI: Saved — return to view mode
+    end
+
+    rect rgb(243, 229, 245)
+        Note over SUP,S3: FILE ATTACHMENT (Files Tab)
+        SUP->>UI: Switch to Files Tab → Click Upload
+        UI->>UI: Render "Upload Files" Modal
+        SUP->>UI: Browse → Select 3 files → Upload
+        UI->>GW: POST /api/v1/invoices/{id}/files (multipart)
+        GW->>DOC: Process upload
+        DOC->>S3: Store files + virus scan
+        DOC->>DOC: Auto-classify: Generated vs Supporting
+        DOC->>DOC: Auto-convert .xlsx → .pdf (Invoice type)
+        DOC->>DB: INSERT file metadata with tags
+        DOC-->>UI: "Files Uploaded Successfully" toast
+        Note over UI: Grid shows: aqc_corp.pdf (Generated),<br/>jan_feb.pdf (Supporting), March_april.xlsx (Supporting)
+    end
+
+    rect rgb(232, 245, 233)
+        Note over SUP,AP: SUBMISSION & AP SYNC
+        SUP->>UI: Click Submit
+        UI->>GW: POST /api/v1/invoices/{id}/submit
+        GW->>INV: Validate all required fields
+        INV->>INV: Field-level validation (amount, dates, line items)
+
+        alt Validation Failed
+            INV-->>UI: 422 — Field-level errors
+        else Validation Passed
+            INV->>DB: UPDATE invoice status → SUBMITTED
+            INV->>ERP: POST /erp/invoices/sync
+            ERP->>AP: Push invoice to AP system
+            INV->>DOC: Generate invoice PDF (tag: Generated)
+            DOC->>S3: Store generated PDF
+            INV->>NOT: Notify AP team — new invoice submitted
+            INV->>AUD: Log submission
+            INV-->>UI: "Invoice Created Successfully" toast
+            Note over UI: Status: SUBMITTED (read-only),<br/>No Submit/Delete buttons
+        end
+    end
