@@ -26,6 +26,7 @@ ALL_DOCS = [
     'Doc4_Tech_Specs',
     'Doc5_Case_Studies',
     'Doc6_Contract_MSA',
+    'Doc7_QA_Strategy',
 ]
 
 
