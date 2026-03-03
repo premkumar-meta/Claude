@@ -223,7 +223,7 @@ A feature/story is Done only when ALL criteria are met:
 
 ### 2.4 Defect Management Lifecycle
 
-All defects follow a standardized lifecycle from discovery through resolution and closure. The SLA targets below are project-specific commitments aligned to HighRadius's operational expectations and RFP requirements. This applies to both in-sprint defects and production incidents.
+All defects follow a standardized lifecycle from discovery through resolution and closure. The SLA targets below are project-specific commitments aligned to HighRadius's operational expectations and RFP requirements. These SLAs apply during the 20-week development phase (full team available). Post-go-live hypercare SLAs are defined in the **Commercial Agreement document**.
 
 | Severity | Description | Response SLA | Resolution SLA | Examples |
 |----------|-------------|-------------|----------------|----------|
@@ -328,11 +328,13 @@ Production reliability requires comprehensive observability across application p
 |------|-------|------------|--------------|
 | Architect / Technical Lead | 1 | 6 | System design, G4 integration, code quality, performance optimization |
 | Senior Backend Engineers | 2 | 12 | Microservices, API implementation, database design, DevOps |
-| Frontend Engineers | 3 | 12 | UI/UX with G4 DSL, responsive design, WCAG compliance |
+| Frontend Engineers | 2 | 12 | UI/UX with G4 DSL, responsive design, WCAG compliance |
 | QA Engineer | 1 | 6 | E2E automation, performance testing, security validation, WCAG testing |
 | Project Manager | 1 | 6 | Timeline management, stakeholder communication, risk tracking, PVA reporting |
 
 **Total Team Capacity:** 7 FTE (6 months core development + extended hypercare phase at 0.5 FTE)
+
+**Note:** Architect/Technical Lead contributes ~40% backend effort and ~20% frontend effort alongside dedicated engineers, giving effective capacity of 3 FE developers and 2.4 BE developers for calendar estimation purposes (see Section 1.3).
 
 **AI Tooling:** All 6 engineers equipped with Claude Opus AI subscriptions for 1.10x–1.50x productivity gains across coding, testing, and documentation activities.
 
