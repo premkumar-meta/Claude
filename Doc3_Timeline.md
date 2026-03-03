@@ -28,6 +28,7 @@
    - 1.3 [Calendar Estimates by Discipline](#13-calendar-estimates-by-discipline)
    - 1.4 [Timeline Reality Assessment](#14-timeline-reality-assessment)
    - 1.5 [Key Deliverables](#15-key-deliverables)
+   - 1.6 [Project Assumptions](#16-project-assumptions)
 2. [Delivery Approach](#2-delivery-approach)
    - 2.1 [Engagement Model & Sprint Cadence](#21-engagement-model--sprint-cadence)
    - 2.2 [Agent-Level KPI Definitions](#22-agent-level-kpi-definitions)
@@ -105,12 +106,12 @@ Based on actual team composition (3 FE + 2 BE + 1 QA, all with Claude Opus AI). 
 |-----------|-----------|-------------|----------------|-------|
 | Frontend Development | 3 developers | 72 days | ~15 weeks | Parallel execution across 3 devs; AI multiplier on code + unit tests |
 | Backend Development | 2 developers | 77 days | ~16 weeks | Includes DevOps, observability; AI multiplier on services + APIs |
-| QA Engineering | 1 engineer | ~44 weeks total | ~40% overlaps with dev | E2E, performance, security, WCAG; unit tests written by devs |
+| QA Engineering | 1 engineer + Automation | ~28 person-weeks | ~17 weeks | Parallel test streams (BE + FE overlap Weeks 6–11); completes Week 17; unit tests written by devs |
 | Sprint 0 (Foundation) | Full team | 10 days | 2 weeks | Architecture, design sprint, CI/CD setup, G4 component evaluation |
 
-- Frontend and backend streams run in parallel, with QA overlapping ~40% with active development sprints
+- Frontend and backend streams run in parallel, with QA overlapping dev from Week 3 through parallel test streams
 - Critical path is backend at ~16 weeks, with frontend completing within the same window
-- QA effort extends beyond dev completion for final regression, performance, and security testing
+- QA completes at Week 17 (regression + release hardening), providing 3-week handover buffer before program end
 
 ### 1.4 Timeline Reality Assessment
 
@@ -145,6 +146,17 @@ The HighRadius RFP defines three delivery milestones. Our honest assessment with
 - Knowledge transfer sessions
 
 > *For detailed scope of each agent and screen-level breakdown, refer to the **Scope of Work document**.*
+
+### 1.6 Project Assumptions
+
+The timeline and delivery plan are based on the following key assumptions (aligned with Commercial Agreement document):
+
+- All 16 undesigned screens will be finalized during Sprint 0 design sprint.
+- UX assets and style guide will be provided by HighRadius or approved within 5 business days.
+- No major changes to G4 platform or ERP interfaces during the 20-week delivery window.
+- HighRadius resources (Product, Engineering, Infosec) will be available for weekly reviews and sign-offs.
+- Production environment and G4 deployment access granted by Week 4.
+- Scope variance capped at 10–15%; anything beyond will be handled via formal Change Request (see Commercial Agreement document).
 
 ---
 
@@ -316,7 +328,7 @@ Production reliability requires comprehensive observability across application p
 |------|-------|------------|--------------|
 | Architect / Technical Lead | 1 | 6 | System design, G4 integration, code quality, performance optimization |
 | Senior Backend Engineers | 2 | 12 | Microservices, API implementation, database design, DevOps |
-| Frontend Engineers | 2 | 12 | UI/UX with G4 DSL, responsive design, WCAG compliance |
+| Frontend Engineers | 3 | 12 | UI/UX with G4 DSL, responsive design, WCAG compliance |
 | QA Engineer | 1 | 6 | E2E automation, performance testing, security validation, WCAG testing |
 | Project Manager | 1 | 6 | Timeline management, stakeholder communication, risk tracking, PVA reporting |
 
