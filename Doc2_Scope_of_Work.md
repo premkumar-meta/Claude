@@ -75,16 +75,16 @@
 
 **Portal Screens Breakdown (29 Total):**
 
-| Workflow/Feature | Screens | Complexity | Est. Hours/Screen | Total Hours |
-|-----------------|---------|------------|-------------------|-------------|
-| Supplier Onboarding | 6 | High | 40 | 240 |
-| Supplier Screening | 3 | Medium | 35 | 105 |
-| Bank Validation | 2 | Medium | 30 | 60 |
-| Approval Workflows | 4 | High | 45 | 180 |
-| PO Management | 5 | High | 40 | 200 |
-| Invoice Management | 5 | High | 40 | 200 |
-| Master Data Management | 2 | Medium | 35 | 70 |
-| Dashboards | 2 | High | 50 | 100 |
+| Workflow/Feature | Screens | Complexity | Est. Days/Screen | Total Person-Days |
+|-----------------|---------|------------|-----------------|-------------------|
+| Supplier Onboarding | 6 | High | 5 | 30 |
+| Supplier Screening | 3 | Medium | 4.5 | 13.5 |
+| Bank Validation | 2 | Medium | 4 | 8 |
+| Approval Workflows | 4 | High | 5.5 | 22 |
+| PO Management | 5 | High | 5 | 25 |
+| Invoice Management | 5 | High | 5 | 25 |
+| Master Data Management | 2 | Medium | 4.5 | 9 |
+| Dashboards | 2 | High | 6 | 12 |
 
 **Popup / Modal Screens (11 Total):**
 
@@ -104,22 +104,37 @@
 
 Estimated effort: ~3 weeks for all popup/modal UI. Each also requires API calls and E2E test cases.
 
-- **Modals & Pop-ups Total: ~200 hours**
-- **Screen Development Total: ~1,355 hours**
+- **Modals & Pop-ups:** ~5 person-weeks
+- **Screen Development:** ~29 person-weeks
+- **Combined Frontend (Screens + Modals): ~34 person-weeks** → ~11 calendar weeks with 3 FE devs
 
 **Workflow/Feature Development (Backend Services):**
 
-| Agent/Service | Workflows | Est. Hours/Workflow | Total Hours |
-|---------------|-----------|---------------------|-------------|
-| Supplier Onboarding Agent | 3 | 120 | 360 |
-| Supplier Screening Agent | 2 | 100 | 200 |
-| Bank Validation Agent | 1 | 80 | 80 |
-| Supplier Approval Agent | 2 | 140 | 280 |
-| Master Data Approval Agent | 2 | 120 | 240 |
-| Purchase Order Agent | 3 | 130 | 390 |
-| Portal Invoice Agent | 3 | 130 | 390 |
+| Agent/Service | Workflows | Est. Days/Workflow | Total Person-Days |
+|---------------|-----------|-------------------|-------------------|
+| Supplier Onboarding Agent | 3 | 15 | 45 |
+| Supplier Screening Agent | 2 | 12.5 | 25 |
+| Bank Validation Agent | 1 | 10 | 10 |
+| Supplier Approval Agent | 2 | 17.5 | 35 |
+| Master Data Approval Agent | 2 | 15 | 30 |
+| Purchase Order Agent | 3 | 16 | 48 |
+| Portal Invoice Agent | 3 | 16 | 48 |
 
-- **Agent/Service Development Total: ~1,940 hours**
+- **Agent/Service Development Total: ~49 person-weeks** (delivered by 2 Senior Backend Engineers + Architect/Tech Lead contributing ~40% backend effort → ~16 calendar weeks)
+
+**Effort Reconciliation with Timeline:**
+
+| Stream | Gross Effort | Team | AI Multiplier | Calendar Weeks |
+|--------|-------------|------|--------------|----------------|
+| Frontend (Screens + Modals) | ~34 person-weeks | 3 FE Devs | 1.40x | ~15 weeks |
+| Backend (Agent Services) | ~49 person-weeks | 2 BE + Architect (~40%) | 1.30x | ~16 weeks |
+| QA (E2E, Perf, Security, RBAC) | ~28 person-weeks | 1 QA Engineer + Automation | — | ~17 weeks (parallel streams, overlaps with dev from Week 3) |
+
+- All estimates are gross effort before AI productivity adjustment
+- Unit tests (~11 weeks) are developer responsibility and included in FE/BE capacity, not QA
+- QA 17-week calendar accommodates ~28 person-weeks through overlapping test streams (backend validation + frontend E2E run concurrently Weeks 6–11; performance + security overlap Weeks 13–15)
+- QA execution begins Week 1 (setup/framework) and completes Week 17 (regression + release hardening), 3 weeks before program end for handover buffer
+- Calendar alignment validated in the **Timeline document** and **QA Strategy document**
 
 #### Integrations
 
@@ -140,53 +155,45 @@ Estimated effort: ~3 weeks for all popup/modal UI. Each also requires API calls 
 
 | Area | Target Coverage | Estimated Effort |
 |------|----------------|-----------------|
-| Frontend Unit Tests (React/Jest) | 80% coverage (RFP mandate) | ~5 weeks (QA) |
-| Backend Unit Tests (JUnit) | 80% coverage (RFP mandate) | ~6 weeks (QA) |
+| Frontend Unit Tests (React/Jest) | 80% coverage (RFP mandate) | ~5 weeks (Dev) |
+| Backend Unit Tests (JUnit) | 80% coverage (RFP mandate) | ~6 weeks (Dev) |
 | Regression Test Suite (JUnit) | Automated regression per RFP requirement | ~3 weeks (QA) |
 
-**Integration & E2E Testing:**
+**Functional Testing (E2E + Regression):**
 
 | Area | Scope | Effort |
 |------|-------|--------|
-| Supplier Onboarding | Invite → Form fill → Screening → Approval → Activation (6 features) | ~4 weeks (QA) |
-| Screening & Bank Validation (Integration) | Verify vendor orchestration calls HR screening/bank APIs correctly; validate result display and error handling | ~2 weeks (QA) |
-| Approval Workflows | Multi-level onboarding approval, Master data change, Payment terms (3 features) | ~3 weeks (QA) |
-| PO / Invoice Flows | PO import → Acknowledge → Flip to Invoice → Submit → AP Sync (7 features) | ~5 weeks (QA) |
-| Document Management | Upload, Download, Delete, Version control, Bulk operations | ~1.5 weeks (QA) |
-| Dashboard & Reporting | KPI calculations, Data aggregation, Drill-downs | ~1.5 weeks (QA) |
-| Portal Cross-cutting Flows | Keycloak SSO token flow → RBAC → Multi-tenant isolation → Session mgmt | ~2 weeks (QA) |
+| Supplier Onboarding E2E | Invite → Form fill → Screening → Approval → Activation (6 features) | ~3 weeks (QA) |
+| Screening & Bank Validation (Integration) | Vendor orchestration calls HR screening/bank APIs; result display and error handling | ~2 weeks (QA) |
+| Approval Workflows E2E | Multi-level onboarding approval, Master data change, Payment terms (3 features) | ~2 weeks (QA) |
+| PO / Invoice Flows E2E | PO import → Acknowledge → Flip to Invoice → Submit → AP Sync (7 features) | ~4 weeks (QA) |
+| Document, Dashboard & Cross-cutting | Document mgmt, KPI dashboards, Keycloak SSO flow, multi-tenant isolation, session mgmt | ~3 weeks (QA) |
+| Regression Suite | Automated regression across all agents per sprint | ~2 weeks (QA) |
 
-**Performance & Load Testing:**
+**Performance, Security & Compliance Testing:**
 
-| Test Area | Benchmark | Effort |
-|-----------|-----------|--------|
-| API Response Time Validation | All APIs < 3 seconds (RFP requirement) | ~1.5 weeks (QA) |
-| Grid Load Time | < 500ms for 1000 rows (NFR requirement) | ~1 week (QA) |
-| Virtual Scrolling Stress | > 1000 rows, 30+ columns performance | ~1 week (QA) |
-| Concurrent User Load | Simulate 100–500 concurrent suppliers | ~1.5 weeks (QA) |
-| ERP Sync Throughput | PO import + Invoice sync under load | ~1 week (QA) |
-| Horizontal Scaling Validation | Container scaling under G4 environment | ~1 week (QA) |
-
-**Security Testing:**
-
-| Security Area | Scope | Effort |
-|---------------|-------|--------|
+| Area | Scope | Effort |
+|------|-------|--------|
+| API & Grid Performance | All APIs < 3s (RFP), Grid < 500ms, virtual scrolling stress | ~2 weeks (QA) |
+| Load, Stress & Soak Testing | 100–500 concurrent users, ERP sync throughput, container scaling under G4 | ~3 weeks (QA) |
 | Vulnerability Scanning (OWASP Top 10) | SAST + DAST scanning of all vendor-built endpoints | ~1.5 weeks (QA) |
-| SSO Token Validation Testing | Keycloak token consumption, session handling, expiry edge cases | ~1 week (QA) |
-| RBAC / Permission Boundary Testing | Role-based access enforcement across all 29 screens + 11 popups | ~1.5 weeks (QA) |
-| Data Protection & Isolation | Multi-tenant data isolation verification, PII handling | ~1 week (QA) |
-| CSP & Headers Validation | Content Security Policy, unsafe-eval prevention | ~3 days (QA) |
-| HashiCorp Vault Integration Test | Key store operations, secret rotation | ~3 days (QA) |
+| RBAC/ABAC & Tenant Isolation | Role matrix (4 personas × 29 screens + 11 modals), cross-tenant prevention, privilege escalation, RLS | ~3 weeks (QA) |
+| SSO, CSP & Vault Validation | Keycloak token flow, session handling, CSP headers, HashiCorp Vault integration | ~1.5 weeks (QA) |
 | Infosec Clearance Prep | Documentation and remediation for HighRadius cybersecurity team | ~1 week (QA) |
 
-**ABAC / RBAC Testing:**
+**QA Execution Timeline (17 Weeks):**
 
-| ABAC/RBAC Area | Scope | Effort |
-|----------------|-------|--------|
-| Role Matrix Validation | Supplier, Supplier Manager, Admin, Approver — all 29 screens + 11 popups | ~1.5 weeks (QA) |
-| Access Boundary Enforcement | Cross-tenant data access prevention, Row-level security | ~1 week (QA) |
-| Permission Escalation Testing | Ensure no privilege escalation via API manipulation | ~1 week (QA) |
-| Multi-Tenant RBAC Isolation | Roles scoped to tenant, no cross-tenant role leakage | ~1 week (QA) |
+| QA Phase | Program Weeks | Activities |
+|----------|--------------|------------|
+| Setup & Framework | 1–2 | Automation framework init, CI integration, RBAC matrix prep, test data modeling |
+| Backend Validation | 3–8 | 66 APIs + 7 integrations: functional, negative, tenant enforcement, failure injection |
+| Frontend + E2E Automation | 6–11 | 29 screens, 11 modals, persona-based access, critical journey automation |
+| Integration Hardening | 9–11 | Deep failure simulation, circuit breaker/retry validation |
+| Performance Validation | 12–14 | Load, stress, 8-hour soak, month-end simulation |
+| Security & Compliance | 13–15 | OWASP, JWT tampering, tenant cross-access, CSP, WCAG 2.0 AA |
+| Regression & Release | 15–17 | Full regression cycles, UAT support, release hardening, go-live readiness |
+
+> *For detailed QA strategy, tool stack, and release controls, refer to the **QA Strategy document**.*
 
 #### Post-Deployment Support
 

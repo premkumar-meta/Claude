@@ -24,11 +24,12 @@
 
 1. [Solution Architecture](#1-solution-architecture)
    - 1.1 [Architecture Overview](#11-architecture-overview)
-   - 1.2 [Application Architecture](#12-application-architecture)
-   - 1.3 [Data Architecture](#13-data-architecture)
-   - 1.4 [Integration Architecture](#14-integration-architecture)
-   - 1.5 [Security Architecture](#15-security-architecture)
-   - 1.6 [Deployment Architecture](#16-deployment-architecture)
+   - 1.2 [Technology Stack](#12-technology-stack)
+   - 1.3 [Application Architecture](#13-application-architecture)
+   - 1.4 [Data Architecture](#14-data-architecture)
+   - 1.5 [Integration Architecture](#15-integration-architecture)
+   - 1.6 [Security Architecture](#16-security-architecture)
+   - 1.7 [Deployment Architecture](#17-deployment-architecture)
 2. [Security & Compliance Controls](#2-security--compliance-controls)
    - 2.1 [Project-Specific Security Adaptations](#21-project-specific-security-adaptations)
    - 2.2 [Infosec Clearance Process](#22-infosec-clearance-process)
@@ -47,14 +48,31 @@ The architecture follows a modular, layered approach designed to meet HighRadius
 
 > *For detailed architecture diagrams (E2E process flow, system architecture, onboarding sequence, PO-to-invoice sequence, agent trigger map, security IAM flow, multi-tenant isolation, error handling), refer to `Supplier_Portal_Architecture_Diagrams.md` and the `mermaid/` directory.*
 
-### 1.2 Application Architecture
+### 1.2 Technology Stack
+
+| Layer | Technology | Details |
+|-------|-----------|---------|
+| **Presentation** | React 18.x + G4 DSL | HighRadius Design System, WCAG 2.0 AA, virtual scrolling |
+| **API Gateway** | G4 Platform Gateway | JWT validation, tenant context injection, rate limiting |
+| **Service** | Spring Boot 3.x (Java 17+) | Stateless microservices, horizontal scaling |
+| **Database** | PostgreSQL (OLAP) | Schema-per-tenant, row-level security |
+| **Caching** | Redis | Session management, configuration lookups |
+| **Security** | Keycloak IAM | OIDC/JWT, SSO, RBAC/ABAC |
+| **Secrets** | HashiCorp Vault | Dynamic secrets, credential rotation |
+| **Encryption** | TLS 1.3 / AES-256 | In-transit and at-rest |
+| **Deployment** | Docker, Kubernetes, Helm | G4 containerized environment |
+| **CI/CD** | Per HighRadius practices | RFP Section 5 mandate |
+| **Integration** | Adapter pattern | Circuit breaker, retry, dead-letter queues |
+| **Compliance** | OWASP Top 10, SOX/GDPR | Immutable audit trails, 2-year retention |
+
+### 1.3 Application Architecture
 
 - **Presentation Layer:** React 18.x + G4 DSL, responsive SPA with role-based routing, WCAG 2.0 AA compliance, ARIA tags, virtual scrolling
 - **API Gateway:** Request routing, JWT validation, tenant context injection, rate limiting
 - **Service Layer:** Spring Boot 3.x microservices with stateless design supporting horizontal scaling; workflow-driven business logic for onboarding, approvals, and invoice processing
 - **Integration Layer:** Adapter pattern with circuit breaker, retry, and dead-letter queues for all external system communication
 
-### 1.3 Data Architecture
+### 1.4 Data Architecture
 
 - **Multi-Tenancy Model:** Schema-per-tenant with shared infrastructure; each HighRadius customer gets an isolated PostgreSQL schema with row-level security policies
 - **Common Schema:** Shared configuration (form templates, workflow definitions, i18n labels)
@@ -62,7 +80,7 @@ The architecture follows a modular, layered approach designed to meet HighRadius
 - **Core Entities:** Supplier, Invitation, Screening Result, Approval Workflow, Purchase Order, Invoice, Document, Audit Log
 - **Strategy:** PostgreSQL OLAP with read replicas, Redis caching layer, immutable audit logs with 2-year retention
 
-### 1.4 Integration Architecture
+### 1.5 Integration Architecture
 
 | External System | Integration Method | Ownership |
 |----------------|-------------------|-----------|
@@ -76,7 +94,7 @@ The architecture follows a modular, layered approach designed to meet HighRadius
 
 All integrations use fault tolerance patterns: circuit breaker, exponential retry, dead-letter queues.
 
-### 1.5 Security Architecture
+### 1.6 Security Architecture
 
 - **Authentication:** Keycloak SSO with OIDC/JWT; no request reaches business logic without validated token, tenant context, and role verification (zero-trust model)
 - **Authorization:** Hybrid RBAC + ABAC — roles assigned in Keycloak (RBAC), runtime attributes for fine-grained control (ABAC)
@@ -145,7 +163,7 @@ The system uses a hybrid RBAC + ABAC model. Roles are assigned in Keycloak (RBAC
 - Row-level security (RLS) policies act as database-level safety net even if middleware is bypassed
 - Cross-tenant API calls return 403 with no data leakage — validated in automated isolation tests
 
-### 1.6 Deployment Architecture
+### 1.7 Deployment Architecture
 
 - **Containerization:** Docker containers with Helm charts for Kubernetes orchestration
 - **Environment Promotion:** Dev (local) → QA (auto on merge) → UAT (manual, QA sign-off) → Production (manual, UAT + HighRadius Engineering sign-off)
