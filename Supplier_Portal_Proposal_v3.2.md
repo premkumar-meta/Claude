@@ -945,7 +945,7 @@ Production reliability requires comprehensive observability across application p
 
 **Defect Management Lifecycle (Project-Specific SLAs):**
 
-All defects follow a standardized lifecycle from discovery through resolution and closure. The SLA targets below are project-specific commitments aligned to HighRadius's operational expectations and RFP requirements. This applies to both in-sprint defects and production incidents.
+All defects follow a standardized lifecycle from discovery through resolution and closure. The SLA targets below are project-specific commitments aligned to HighRadius's operational expectations and RFP requirements. These SLAs apply during the 20-week development phase (full team available). Post-go-live hypercare SLAs are defined in Section 19 (Support & Warranty Model).
 
 | Severity | Description | Response SLA | Resolution SLA | Examples |
 |----------|-------------|-------------|----------------|----------|
@@ -1055,12 +1055,12 @@ Based on actual team composition (3 FE + 2 BE + 1 QA, all with Claude Opus AI). 
 |-----------|-----------|-------------|----------------|-------|
 | Frontend Development | 3 developers | 72 days | ~15 weeks | Parallel execution across 3 devs; AI multiplier on code + unit tests |
 | Backend Development | 2 developers | 77 days | ~16 weeks | Includes DevOps, observability; AI multiplier on services + APIs |
-| QA Engineering | 1 engineer | ~44 weeks total | ~40% overlaps with dev | E2E, performance, security, WCAG; unit tests written by devs |
+| QA Engineering | 1 engineer + Automation | ~28 person-weeks | ~17 weeks | Parallel test streams (BE + FE overlap Weeks 6–11); completes Week 17; unit tests written by devs |
 | Sprint 0 (Foundation) | Full team | 10 days | 2 weeks | Architecture, design sprint, CI/CD setup, G4 component evaluation |
 
-- Frontend and backend streams run in parallel, with QA overlapping ~40% with active development sprints
+- Frontend and backend streams run in parallel, with QA overlapping dev from Week 3 through parallel test streams
 - Critical path is backend at ~16 weeks, with frontend completing within the same window
-- QA effort extends beyond dev completion for final regression, performance, and security testing
+- QA completes at Week 17 (regression + release hardening), providing 3-week handover buffer before program end
 
 ### 11.4 Timeline Reality Assessment
 
@@ -1114,6 +1114,8 @@ The HighRadius RFP defines three delivery milestones. Our honest assessment with
 
 **Total Team Capacity:** 7 FTE (6 months core development + extended hypercare phase at 0.5 FTE)
 
+**Note:** Architect/Technical Lead contributes ~40% backend effort and ~20% frontend effort alongside dedicated engineers, giving effective capacity of 3 FE developers and 2.4 BE developers for calendar estimation purposes (see Section 11.3).
+
 **AI Tooling:** All 6 engineers equipped with Claude Opus AI subscriptions for 1.10x–1.50x productivity gains across coding, testing, and documentation activities.
 
 ---
@@ -1123,6 +1125,8 @@ The HighRadius RFP defines three delivery milestones. Our honest assessment with
 **Classification: STANDARD**
 
 *[Standard section — to be populated with Metapointer standard template]*
+
+> *For detailed QA strategy, tool stack, test case plan, release controls, and quality metrics, refer to the **QA Strategy document**.*
 
 ---
 
