@@ -234,7 +234,19 @@ def convert_markdown_to_docx(md_path, docx_path):
                 break
 
             # Parse TOC entries
-            # Top level: "1. [Title](#link)"
+            # Bold part header: "**PART I — PROPOSAL CONTEXT**"
+            if line.startswith('**') and line.endswith('**'):
+                p = doc.add_paragraph()
+                r = p.add_run(strip_bold_markers(line))
+                r.bold = True
+                r.font.size = Pt(11)
+                r.font.color.rgb = DARK_BLUE
+                p.paragraph_format.space_before = Pt(8)
+                p.paragraph_format.space_after = Pt(2)
+                j += 1
+                continue
+
+            # Top level with link: "1. [Title](#link)"
             toc_top = re.match(r'^(\d+)\.\s+\[(.+?)\]\(.*?\)$', line)
             if toc_top:
                 p = doc.add_paragraph(f'{toc_top.group(1)}. {toc_top.group(2)}')
@@ -242,7 +254,16 @@ def convert_markdown_to_docx(md_path, docx_path):
                 j += 1
                 continue
 
-            # Sub level: "   - 1.1 [Title](#link)"
+            # Top level plain: "- 1. Cover Page" or "- 22. About Metapointer"
+            toc_num = re.match(r'^-\s+(\d+)\.\s+(.+)$', line)
+            if toc_num:
+                p = doc.add_paragraph(f'{toc_num.group(1)}. {toc_num.group(2)}')
+                p.paragraph_format.left_indent = Cm(0.5)
+                p.paragraph_format.space_after = Pt(2)
+                j += 1
+                continue
+
+            # Sub level with link: "   - 1.1 [Title](#link)"
             toc_sub = re.match(r'^\s+-\s+(\d+\.\d+)\s+\[(.+?)\]\(.*?\)$', line)
             if toc_sub:
                 p = doc.add_paragraph(f'{toc_sub.group(1)} {toc_sub.group(2)}')
