@@ -339,6 +339,8 @@ Estimated effort: ~3 weeks for all popup/modal UI. Each also requires API calls 
 - Notification services (email/WebSocket)
 - Fault tolerance with circuit breakers, retries, and dead-letter queues
 
+> *For detailed integration architecture, system mapping, and fault tolerance patterns, refer to Section 7 (Solution Architecture).*
+
 #### Testing & Quality Assurance
 
 **Unit Testing:**
@@ -391,6 +393,8 @@ Estimated effort: ~3 weeks for all popup/modal UI. Each also requires API calls 
 - Production monitoring and issue resolution per SLAs
 - Weekly updates (email/call/PVA)
 - Root cause analysis and knowledge transfer
+
+> *For detailed hypercare SLAs, escalation matrix, and support model, refer to Section 19 (Support & Warranty Model).*
 
 #### AI Productivity Enhancements
 
@@ -1263,6 +1267,8 @@ Remediation SLA: Critical findings resolved within 48 hours; High findings withi
 **Classification: STANDARD**
 
 *[Standard section — to be populated with Metapointer standard template]*
+
+*This section will cover: Architecture documentation, API documentation (OpenAPI/Swagger), Deployment guides & runbooks, KT session structure & schedule, Handover acceptance criteria.*
 
 ---
 
