@@ -1,0 +1,57 @@
+%% Supplier Portal — Phase 1: Core Onboarding & Compliance
+%% Split from 01_e2e_process_flow.mmd
+
+flowchart TB
+    A([Supplier Manager<br/>logs into Apollo Platform]) --> B[Navigate to<br/>Supplier Portal Module]
+    B --> C{Invitation<br/>Method?}
+
+    C -->|Individual| D[Open Supplier Onboarding<br/>Invitation E-Form Modal]
+    C -->|Bulk CSV| E[Upload CSV File<br/>with Supplier List]
+
+    D --> F[Fill: Name, Email,<br/>ERP/Company, Category]
+    E --> G[Validate CSV:<br/>Duplicates, Format, Email]
+
+    F --> H[Send Invitation Email<br/>with Secure Time-Limited Link]
+    G --> H
+
+    H --> I([Supplier Receives Email<br/>from noreply@qas.com])
+    I --> J[Click: Proceed To Complete<br/>Vendor Registration]
+
+    J --> K[Step 1: General Supplier Info<br/>Name, Email, TIN, Tax Classification]
+    K --> L[Step 2: Purchase Info<br/>Sales Rep, Billing & Shipping Address]
+    L --> M[Step 3: Remittance Info<br/>Multiple Addresses via Grid CRUD]
+    M --> N[Step 4: Payment Info<br/>Wire/ACH, Bank Name, Account, ABA]
+    N --> O[Step 5: Upload Documents<br/>Multi-file, Drag-Drop, Type Selection]
+
+    O --> P[Certify & Submit Registration]
+    P --> Q{Auto-Save<br/>Draft?}
+    Q -->|Yes — Resume Later| K
+    Q -->|Submit| R
+
+    R[AGENT: Supplier Screening<br/>Automated — Parallel Checks] --> S1[Address Verification]
+    R --> S2[TIN Validation]
+    R --> S3[Sanctions Screening<br/>OFAC/EU/UN]
+    R --> S4[AGENT: Bank Account<br/>Validation — Automated]
+
+    S1 --> T{All Checks<br/>Passed?}
+    S2 --> T
+    S3 --> T
+    S4 --> T
+
+    T -->|Any Failed| U[Block with Actionable<br/>Error + Retry Option]
+    U --> R
+
+    T -->|All Passed| V[AGENT: Supplier Approval<br/>Assisted — Multi-Level Workflow]
+
+    V --> W{Approval<br/>Decision?}
+    W -->|Approved| X[Activate Supplier<br/>+ Grant Portal Access via Keycloak]
+    W -->|Rejected| Y[Notify Supplier<br/>of Rejection with Reason]
+    W -->|Reassigned| V
+    W -->|SLA Breach| Z[Auto-Escalate to<br/>Next Approval Level]
+    Z --> V
+
+    X --> AA([Supplier Dashboard<br/>Financial Summary + Tasks + Alerts])
+
+    style R fill:#ff6b6b,color:#fff
+    style S4 fill:#ff6b6b,color:#fff
+    style V fill:#ffa726,color:#fff
